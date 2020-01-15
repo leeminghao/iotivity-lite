@@ -319,6 +319,11 @@ oc_tcp_receive_message(ip_context_t *dev, fd_set *fds, oc_message_t *message)
   adapter_receive_state_t ret = ADAPTER_STATUS_ERROR;
   message->endpoint.device = dev->device;
 
+#ifdef OC_BLUETOOTH
+  if (FD_ISSET(dev->bluetooth.server_sock, fds)) {
+    ret_with_code(ADAPTER_STATUS_NONE);
+  }
+#endif
   if (FD_ISSET(dev->tcp.server_sock, fds)) {
     message->endpoint.flags = IPV6 | TCP;
     if (accept_new_session(dev, dev->tcp.server_sock, fds, &message->endpoint) <

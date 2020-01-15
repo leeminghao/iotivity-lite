@@ -46,11 +46,15 @@ extern "C"
       scheme = "coap+tcp";                                                     \
     if ((endpoint).flags & TCP && (endpoint).flags & SECURED)                  \
       scheme = "coaps+tcp";                                                    \
+    if ((endpoint).flags & GATT)                                               \
+      scheme = "coap+gatt";                                                    \
     if ((endpoint).flags & IPV4) {                                             \
       PRINT("%s://%d.%d.%d.%d:%d", scheme, ((endpoint).addr.ipv4.address)[0],  \
             ((endpoint).addr.ipv4.address)[1],                                 \
             ((endpoint).addr.ipv4.address)[2],                                 \
             ((endpoint).addr.ipv4.address)[3], (endpoint).addr.ipv4.port);     \
+    } else if ((endpoint).flags & GATT) {                                      \
+      PRINT("%s://%s", scheme, (char*)(endpoint).addr.bt.address);             \
     } else {                                                                   \
       PRINT(                                                                   \
         "%s://[%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%"    \

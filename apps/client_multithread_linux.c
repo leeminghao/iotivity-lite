@@ -392,7 +392,8 @@ main(void)
 
   static const oc_handler_t handler = { .init = app_init,
                                         .signal_event_loop =
-                                          signal_event_loop };
+                                        signal_event_loop,
+                                        .register_resources = NULL };
 
 #ifdef OC_SECURITY
   oc_storage_config("./client_multithread_linux_creds");

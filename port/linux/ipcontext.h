@@ -24,6 +24,10 @@
 #include <stdint.h>
 #include <sys/select.h>
 #include <sys/socket.h>
+#if OC_BLUETOOTH
+#include "lib/bluetooth.h"
+#include "lib/l2cap.h"
+#endif
 
 #ifdef __cplusplus
 extern "C"
@@ -63,6 +67,14 @@ typedef struct tcp_context_t
 } tcp_context_t;
 #endif
 
+#ifdef OC_BLUETOOTH
+typedef struct bluetooth_context_t
+{
+  struct sockaddr_l2 server;
+  int server_sock;
+} bluetooth_context_t;
+#endif
+
 typedef struct ip_context_t {
   struct ip_context_t *next;
   OC_LIST_STRUCT(eps);
@@ -90,6 +102,9 @@ typedef struct ip_context_t {
 #endif /* OC_IPV4 */
 #ifdef OC_TCP
   tcp_context_t tcp;
+#endif
+#ifdef OC_BLUETOOTH
+  bluetooth_context_t bluetooth;
 #endif
   pthread_t event_thread;
   int terminate;

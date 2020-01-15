@@ -19,6 +19,9 @@
 #ifdef OC_TCP
 #include "tcpadapter.h"
 #endif
+#ifdef OC_BLUETOOTH
+#include "bluetooth_adapter.h"
+#endif
 #include "oc_buffer.h"
 #include "oc_core_res.h"
 #include "oc_endpoint.h"
@@ -539,6 +542,10 @@ refresh_endpoints_list(ip_context_t *dev)
 #endif /* OC_SECURITY */
 #endif /* OC_IPV4 */
 #endif /* OC_TCP */
+
+#ifdef OC_BLUETOOTH
+  oc_get_bluetooth_address(dev);
+#endif
 }
 
 oc_endpoint_t *
@@ -864,6 +871,9 @@ network_event_thread(void *data)
 #ifdef OC_TCP
   oc_tcp_add_socks_to_fd_set(dev);
 #endif /* OC_TCP */
+#ifdef OC_BLUETOOTH
+  oc_bluetooth_add_socks_to_fd_set(dev);
+#endif /* OC_BLUETOOTH */
 
   int i, n;
 
@@ -912,6 +922,12 @@ network_event_thread(void *data)
         goto common;
       }
 #endif /* OC_TCP */
+#ifdef OC_BLUETOOTH
+      if (oc_bluetooth_receive_message(dev, &setfds, message) ==
+          ADAPTER_STATUS_RECEIVE) {
+        goto common;
+      }
+#endif
 
       oc_message_unref(message);
       continue;
@@ -1052,6 +1068,11 @@ oc_send_buffer(oc_message_t *message)
     return oc_tcp_send_buffer(dev, message, &receiver);
   }
 #endif /* OC_TCP */
+#ifdef OC_BLUETOOTH
+  if (message->endpoint.flags & GATT) {
+    return oc_bluetooth_send_buffer(dev, message);
+  }
+#endif /* OC_BLUETOOTH */
 
 #ifdef OC_SECURITY
   if (message->endpoint.flags & SECURED) {
@@ -1559,6 +1580,12 @@ oc_connectivity_init(size_t device)
     OC_ERR("Could not initialize TCP adapter");
   }
 #endif /* OC_TCP */
+
+#ifdef OC_BLUETOOTH
+  if (oc_bluetooth_connectivity_init(dev) != 0) {
+    OC_ERR("Could not initialize Bluetooth adapter");
+  }
+#endif
 
   /* Netlink socket to listen for network interface changes.
    * Only initialized once, and change events are captured by only

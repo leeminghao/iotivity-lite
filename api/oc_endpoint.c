@@ -27,11 +27,13 @@
 #define OC_SCHEME_COAPS "coaps://"
 #define OC_SCHEME_COAP_TCP "coap+tcp://"
 #define OC_SCHEME_COAPS_TCP "coaps+tcp://"
+#define OC_SCHEME_COAP_GATT "coap+gatt://"
 
 #define OC_IPV6_ADDRSTRLEN (46)
 #define OC_IPV4_ADDRSTRLEN (16)
 #define OC_IPV6_ADDRLEN (16)
 #define OC_IPV4_ADDRLEN (4)
+#define OC_BLUETOOTH_ADDRLEN (6)
 
 OC_MEMB(oc_endpoints_s, oc_endpoint_t, OC_MAX_NUM_ENDPOINTS);
 
@@ -169,6 +171,18 @@ oc_ipv6_endpoint_to_string(oc_endpoint_t *endpoint, oc_string_t *endpoint_str)
   }
 }
 
+#ifdef OC_BLUETOOTH
+static void
+oc_bluetooth_endpoint_to_string(oc_endpoint_t *endpoint, oc_string_t *endpoint_str)
+{
+  if (!endpoint || !endpoint_str) {
+    return;
+  }
+
+  oc_concat_strings(endpoint_str, OC_SCHEME_COAP_GATT, (char*)endpoint->addr.bt.address);
+}
+#endif
+
 int
 oc_endpoint_to_string(oc_endpoint_t *endpoint, oc_string_t *endpoint_str)
 {
@@ -183,6 +197,11 @@ oc_endpoint_to_string(oc_endpoint_t *endpoint, oc_string_t *endpoint_str)
     oc_ipv4_endpoint_to_string(endpoint, endpoint_str);
   }
 #endif /* OC_IPV4 */
+#ifdef OC_BLUETOOTH
+  else if (endpoint->flags & GATT) {
+    oc_bluetooth_endpoint_to_string(endpoint, endpoint_str);
+  }
+#endif
   else {
     return -1;
   }
@@ -342,6 +361,19 @@ oc_parse_ipv6_address(const char *address, size_t len, oc_endpoint_t *endpoint)
   }
 }
 
+#ifdef OC_BLUETOOTH
+static int
+oc_parse_bluetooth_address(const char *address, size_t len, oc_endpoint_t *endpoint)
+{
+  if (!address || !endpoint) {
+    return -1;
+  }
+  uint8_t *addr = endpoint->addr.bt.address;
+  memcpy(addr, address, len);
+  return 0;
+}
+#endif
+
 static int
 oc_parse_endpoint_string(oc_string_t *endpoint_str, oc_endpoint_t *endpoint,
                          oc_string_t *uri)
@@ -353,8 +385,16 @@ oc_parse_endpoint_string(oc_string_t *endpoint_str, oc_endpoint_t *endpoint,
   endpoint->device = 0;
   endpoint->flags = 0;
   size_t len = oc_string_len(*endpoint_str);
+#ifdef OC_BLUETOOTH
+  if (len > strlen(OC_SCHEME_COAP_GATT) &&
+      memcmp(OC_SCHEME_COAP_GATT, oc_string(*endpoint_str),
+             strlen(OC_SCHEME_COAP_GATT)) == 0) {
+    address = oc_string(*endpoint_str) + strlen(OC_SCHEME_COAP_GATT);
+    endpoint->flags = GATT;
+  } else
+#endif
 #ifdef OC_TCP
-  if (len > strlen(OC_SCHEME_COAPS_TCP) &&
+    if (len > strlen(OC_SCHEME_COAPS_TCP) &&
       memcmp(OC_SCHEME_COAPS_TCP, oc_string(*endpoint_str),
              strlen(OC_SCHEME_COAPS_TCP)) == 0) {
     address = oc_string(*endpoint_str) + strlen(OC_SCHEME_COAPS_TCP);
@@ -380,6 +420,10 @@ oc_parse_endpoint_string(oc_string_t *endpoint_str, oc_endpoint_t *endpoint,
   }
 
   len = oc_string_len(*endpoint_str) - (address - oc_string(*endpoint_str));
+
+#ifdef OC_BLUETOOTH
+  return oc_parse_bluetooth_address(address, len, endpoint);
+#endif
 
   /* Extract a uri path if requested and available */
   const char *u = NULL;
